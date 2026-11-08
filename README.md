@@ -72,3 +72,7 @@ Until step 2 passes, we shouldn't claim the system detects relaxation or attenti
 - `StreamingFilter` is causal and keeps its state between chunks, so there's no look-ahead and no window-edge artefacts. The tests check that the output doesn't depend on chunk size and that later samples can't change earlier output.
 - The first 4 s after starting are skipped while the filter settles.
 - Don't commit identifiable participant data.
+
+## MindCart and model integration
+
+See [MODEL_INTEGRATION.md](MODEL_INTEGRATION.md) for the dashboard, model weights, recording requirements, and setup.

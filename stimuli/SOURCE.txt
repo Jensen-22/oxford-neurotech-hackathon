@@ -1,0 +1,4 @@
+72 garment photos selected from the Clothing Dataset (small) by Alexey Grigorev,
+https://github.com/alexeygrigorev/clothing-dataset-small (CC0 / free for any use).
+Selection: balanced across 9 categories, plainest backgrounds, maximally diverse colours,
+no faces, no brand logos. Normalised to 600x600 on mid-grey by mindcart/prep_images.py.

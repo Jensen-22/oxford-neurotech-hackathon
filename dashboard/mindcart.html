@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MindCart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --line:#e4e7ec; --line-2:#eef0f3; --text:#101828; --text-2:#475467; --muted:#98a2b3;
+  --accent:#3e4fd8; --accent-soft:#eef0ff; --pos:#12805c; --pos-soft:#e8f6f0; --mid:#b54708; --mid-soft:#fff4e5; --neg:#667085; --neg-soft:#f2f4f7;
+  --theta:#3e4fd8; --alpha:#12805c; --beta:#b54708; --trace:#344054;
+  --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c111d; --surface:#141a29; --line:#232a3b; --line-2:#1b2233; --text:#f2f4f7; --text-2:#b4bccb; --muted:#6b7588;
+  --accent:#7b8cff; --accent-soft:#1d2445; --pos:#3ccf91; --pos-soft:#11291f; --mid:#f5a524; --mid-soft:#2d2210; --neg:#98a2b3; --neg-soft:#1b2233;
+  --theta:#7b8cff; --alpha:#3ccf91; --beta:#f5a524; --trace:#c2c9d6; --shadow:none}}
+:root[data-theme="dark"]{--bg:#0c111d; --surface:#141a29; --line:#232a3b; --line-2:#1b2233; --text:#f2f4f7; --text-2:#b4bccb; --muted:#6b7588;
+  --accent:#7b8cff; --accent-soft:#1d2445; --pos:#3ccf91; --pos-soft:#11291f; --mid:#f5a524; --mid-soft:#2d2210; --neg:#98a2b3; --neg-soft:#1b2233;
+  --theta:#7b8cff; --alpha:#3ccf91; --beta:#f5a524; --trace:#c2c9d6; --shadow:none}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--accent);display:grid;place-items:center}
+.mark svg{width:16px;height:16px}
+.tag{font-size:12px;font-weight:500;color:var(--text-2);border:1px solid var(--line);border-radius:6px;padding:3px 8px;background:var(--bg)}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--text-2)}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.status.on i{background:var(--pos)}
+.spacer{flex:1}
+input,button{font:500 13px Inter,sans-serif;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 12px}
+button{cursor:pointer;box-shadow:var(--shadow)} button:hover{background:var(--bg)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff} button.primary:hover{filter:brightness(1.08)}
+main{display:grid;grid-template-columns:minmax(280px,1fr) minmax(380px,1.3fr) minmax(280px,1fr);gap:20px;padding:24px 28px;max-width:1600px;margin:0 auto}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line-2)}
+.card-h h2{font-size:13px;font-weight:600}
+.card-h span{font-size:12px;color:var(--muted)}
+.card-b{padding:16px 18px}
+canvas{display:block;width:100%}
+/* stage */
+.stage .card-b{display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px}
+.steps{display:flex;gap:6px;width:100%;max-width:420px}
+.steps div{flex:1;font-size:11px;font-weight:500;color:var(--muted);text-align:center;padding-top:8px;border-top:3px solid var(--line);transition:.3s}
+.steps div.on{color:var(--accent);border-color:var(--accent)}
+.steps div.done{color:var(--text-2);border-color:var(--text-2)}
+.product{width:min(100%,360px);aspect-ratio:1;border-radius:10px;background:var(--bg);border:1px solid var(--line-2);position:relative;display:grid;place-items:center;overflow:hidden}
+#pimg{position:absolute;inset:0;display:grid;place-items:center;transition:opacity .35s}
+#pimg svg{width:58%;height:auto}
+.fix{position:absolute;font:300 48px Inter;color:var(--muted);opacity:0;transition:.2s}.fix.on{opacity:1}
+.pinfo{text-align:center}
+.pname{font-size:20px;font-weight:600;letter-spacing:-.01em}
+.pmeta{color:var(--text-2);font-size:13px}
+.score{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center;width:100%;max-width:420px}
+.score .num{font-size:40px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;grid-row:span 2}
+.score .lbl{font-size:12px;color:var(--text-2);font-weight:500}
+.track{height:8px;background:var(--line-2);border-radius:4px;position:relative;overflow:hidden}
+.track b{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px;transition:width .5s ease}
+.track i{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--muted)}
+.badge{font-size:12px;font-weight:600;padding:5px 10px;border-radius:6px;min-height:28px}
+.badge:empty{visibility:hidden}
+.badge.pos{background:var(--pos-soft);color:var(--pos)} .badge.mid{background:var(--mid-soft);color:var(--mid)} .badge.neg{background:var(--neg-soft);color:var(--neg)}
+/* bands */
+.band{display:grid;grid-template-columns:118px 1fr 52px;gap:10px;align-items:center;padding:7px 0}
+.band .n{font-size:13px;font-weight:500}.band .n small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.band .v{font:500 13px "IBM Plex Mono";text-align:right;font-variant-numeric:tabular-nums}
+.dbar{height:8px;background:var(--line-2);border-radius:4px;position:relative}
+.dbar::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--muted)}
+.dbar b{position:absolute;top:0;bottom:0;border-radius:4px;transition:all .5s ease}
+/* stats */
+.kv{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line-2);font-size:13px;color:var(--text-2)}
+.kv:last-child{border-bottom:0}.kv b{font:500 13px "IBM Plex Mono";color:var(--text)}
+.note{font-size:11px;color:var(--muted);margin-top:8px}
+/* shortlist */
+.list{display:flex;flex-direction:column}
+.li{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-2);animation:fade .4s ease}
+.li:last-child{border-bottom:0}
+.li .th{width:40px;height:40px;border-radius:8px;background:var(--bg);display:grid;place-items:center}.li .th svg{width:70%}
+.li .t{font-size:13px;font-weight:500}.li .s{font-size:12px;color:var(--muted)}
+.li .sc{font:500 13px "IBM Plex Mono"}
+.empty{color:var(--muted);font-size:13px;padding:6px 0}
+.reflect{display:none;margin-top:12px;padding:12px;border-radius:8px;background:var(--accent-soft);font-size:13px;color:var(--text)}
+.reflect b{font-weight:600}
+/* 3D brain */
+.wide{grid-column:1/-1}
+.b3wrap{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px}
+.brain3d{position:relative;height:600px;border-radius:12px;background:radial-gradient(ellipse at 50% 45%,var(--line-2),var(--surface) 72%);overflow:hidden;cursor:grab;touch-action:none;user-select:none}
+.brain3d:active{cursor:grabbing}
+.brain3d canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+.b3lab{position:absolute;left:0;top:0;margin:-24px 0 0 8px;pointer-events:none;font:600 11px "IBM Plex Mono",monospace;color:var(--text);background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--c);border-radius:5px;padding:1px 6px;opacity:.92}
+.b3lab.fl{animation:labfl .8s ease}
+@keyframes labfl{0%{background:var(--c);color:#fff;transform-origin:left;scale:1.35}100%{scale:1}}
+.b3tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;line-height:1.45;box-shadow:0 4px 12px rgba(16,24,40,.12);opacity:0;transition:opacity .15s;white-space:nowrap;z-index:3}
+.b3tip b{font-weight:600}.b3tip span{color:var(--muted)}
+.b3hint{position:absolute;left:12px;bottom:10px;font-size:11px;color:var(--muted)}
+.b3legend{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.b3legend i{width:70px;height:6px;border-radius:3px;background:linear-gradient(90deg,#b9adb7,#ff6b3d,#ffd166)}
+.b3tools{position:absolute;right:10px;top:10px;display:flex;gap:6px;z-index:2}
+.b3tools button{padding:5px 10px;font-size:12px}.b3tools button.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.b3side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.b3side h3{font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px}
+.lobe{display:grid;grid-template-columns:10px 1fr 64px 36px 28px;gap:9px;align-items:center;padding:7px 8px;margin:0 -8px;font-size:13px;border-radius:8px;cursor:pointer}
+.lobe:hover{background:var(--bg)}.lobe.sel{background:var(--accent-soft)}
+.lobe .dot{width:10px;height:10px;border-radius:50%}
+.lobe .n{font-weight:500}.lobe .n small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.lobe .v{font:500 12px "IBM Plex Mono";text-align:right;font-variant-numeric:tabular-nums}
+.lobe .sp{font:500 11px "IBM Plex Mono";text-align:center;color:var(--text-2);background:var(--line-2);border-radius:5px;padding:1px 0}
+.lobe.top .n{color:var(--accent)}
+.lbar{height:8px;background:var(--line-2);border-radius:4px;position:relative;overflow:hidden}
+.lbar b{position:absolute;left:0;top:0;bottom:0;border-radius:4px;transition:width .3s ease}
+.b3dn{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}.b3dn i{width:10px;height:10px;border-radius:50%}
+.b3dm{font-size:12px;color:var(--muted);margin:2px 0 8px}
+.lg{display:grid;grid-template-columns:8px 40px 1fr auto;gap:8px;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid var(--line-2);animation:fade .3s ease}
+.lg:last-child{border-bottom:0}.lg i{width:8px;height:8px;border-radius:50%}.lg b{font:600 12px "IBM Plex Mono"}.lg span{color:var(--text-2)}.lg em{font-style:normal;color:var(--muted);font-size:11px}
+.b3err{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:20px;font-size:13px;color:var(--muted)}
+#b3card:fullscreen{overflow:auto;border-radius:0}#b3card:fullscreen .brain3d{height:calc(100vh - 110px)}
+@media(max-width:1100px){.b3wrap{grid-template-columns:1fr}.brain3d{height:440px}}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}}
+footer{max-width:1600px;margin:0 auto;padding:0 28px 24px;font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+@media(max-width:1100px){main{grid-template-columns:1fr;padding:16px}header{padding:12px 16px}footer{padding:0 16px 20px}.stage{order:-1}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="mark"><svg viewBox="0 0 16 16" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"><path d="M1 9h3l2-5 3 9 2-6 1.5 2H15"/></svg></div>MindCart</div>
+  <span class="tag">Research prototype</span>
+  <span class="status" id="status"><i></i><span id="statusText">Not connected</span></span>
+  <span class="spacer"></span>
+  <span class="tag mono">g.tec Unicorn · 8 ch · 250 Hz</span>
+  <input id="url" value="ws://localhost:8765" size="20" aria-label="WebSocket URL">
+  <button id="connectBtn">Connect headset</button>
+  <button id="demoBtn" class="primary">Run demo</button>
+</header>
+
+<main>
+  <div class="col">
+    <section class="card"><div class="card-h"><h2>EEG signal</h2><span class="mono" id="clock">00:00</span></div><div class="card-b"><canvas id="eeg" height="280"></canvas></div></section>
+    <section class="card"><div class="card-h"><h2>Alpha topography</h2><span>Relative 8–13 Hz power</span></div><div class="card-b"><canvas id="topo" height="230"></canvas></div></section>
+  </div>
+
+  <section class="card stage"><div class="card-h"><h2>Product evaluation</h2><span id="trialN">Trial 0 of 0</span></div>
+    <div class="card-b">
+      <div class="steps"><div id="st0">Fixation</div><div id="st1">Viewing</div><div id="st2">Decoded</div></div>
+      <div class="product"><div class="fix" id="fix">+</div><div id="pimg"></div></div>
+      <div class="pinfo"><div class="pname" id="pname">No item</div><div class="pmeta" id="pmeta">Run the demo or connect a headset</div></div>
+      <div class="score"><div class="num" id="score">–</div><div class="lbl">EEG interest index</div><div class="track"><b id="scoreBar" style="width:0"></b><i style="left:42%"></i><i style="left:66%"></i></div></div>
+      <div class="badge" id="badge"></div>
+
+
+    </div>
+  </section>
+
+  <div class="col">
+    <section class="card"><div class="card-h"><h2>Machine learning model</h2></div><div class="card-b">
+      <div id="mlStatus" style="font-weight:600">Connect the EEG stream</div>
+      <div id="mlDetail" class="note">Model results appear here when available.</div>
+      <div class="note">The interest index uses band power; model results are shown separately.</div>
+    </div></section>
+    <section class="card"><div class="card-h"><h2>Band power</h2><span>Change vs fixation</span></div><div class="card-b">
+      <div class="band"><div class="n">Theta<small>4–8 Hz · Fz</small></div><div class="dbar"><b id="bTheta"></b></div><div class="v" id="vTheta">–</div></div>
+      <div class="band"><div class="n">Alpha<small>8–13 Hz · posterior</small></div><div class="dbar"><b id="bAlpha"></b></div><div class="v" id="vAlpha">–</div></div>
+      <div class="band"><div class="n">Beta<small>13–30 Hz · all</small></div><div class="dbar"><b id="bBeta"></b></div><div class="v" id="vBeta">–</div></div>
+    </div></section>
+    <section class="card"><div class="card-h"><h2>Session</h2><span id="modeLbl">—</span></div><div class="card-b">
+      <div class="kv"><span>Channels within quality threshold</span><b id="sq">–</b></div>
+      <div class="kv"><span>Mean interest index</span><b id="avg">–</b></div>
+      <div class="kv"><span>Model C balanced accuracy</span><b id="acc">–</b></div>
+      <div class="kv"><span>EEG gain over product data (C − A)</span><b id="gain">–</b></div>
+      <div class="note" id="simNote" style="display:none">Model figures from simulated sessions; replace with results.csv after data collection.</div>
+    </div></section>
+    <section class="card"><div class="card-h"><h2>Shortlist</h2><span id="cartN">0 items</span></div><div class="card-b">
+      <div class="list" id="cart"><div class="empty">Items above the interest threshold appear here.</div></div>
+      <div class="reflect" id="reflect"></div>
+    </div></section>
+  </div>
+  <section class="card wide" id="b3card"><div class="card-h"><h2>Brain activity · 3D</h2><span id="b3top">At rest</span></div><div class="card-b b3wrap">
+    <div class="brain3d" id="brain3d">
+      <div class="b3legend">rest<i></i>active</div>
+      <div class="b3tools"><button id="b3labels" class="on">Labels</button><button id="b3reset">Reset view</button><button id="b3full">Fullscreen</button></div>
+      <div class="b3hint">Drag to rotate · scroll to zoom · click a region to focus · white circles = what each electrode measures</div>
+      <div class="b3tip" id="b3tip"></div><div class="b3err" id="b3err">3D view needs internet once to load three.js.</div>
+    </div>
+    <div class="b3side">
+      <div><h3>Regions <span style="float:right;font-weight:400;color:var(--muted)">activity · spikes</span></h3><div id="lobes"></div></div>
+      <div><div class="b3dn" id="b3dn"></div><div class="b3dm" id="b3dm"></div><canvas id="b3trace" height="130"></canvas></div>
+      <div><h3>Spike log</h3><div id="b3log"></div></div>
+      <div class="note">Interpolated from 8 scalp electrodes: shows where the signal changes, not exact sources. Spikes = samples above 3.6× the channel's running SD, from raw EEG (1 Hz high-pass, 50 Hz removed). Blinks count too.</div>
+    </div>
+  </div></section>
+</main>
+<footer><span>MindCart · Oxford Neurotech Hackathon 2026</span><span>Exploratory research tool. The interest index reflects EEG band-power changes and does not measure purchase intention.</span></footer>
+
+<script src="model-status.js"></script>
+<script>
+const SVG={
+ hoodie:c=>`<svg viewBox="0 0 100 100"><path d="M30 20q20-14 40 0l18 14-8 16-8-5v45H28V45l-8 5-8-16z" fill="${c}"/><path d="M38 18q12 16 24 0" fill="none" stroke="#0004" stroke-width="2.5"/><rect x="38" y="60" width="24" height="12" rx="3" fill="#0002"/></svg>`,
+ tee:c=>`<svg viewBox="0 0 100 100"><path d="M34 18q16 10 32 0l22 14-8 14-10-5v49H30V41l-10 5-8-14z" fill="${c}"/><path d="M40 18q10 8 20 0" fill="none" stroke="#0004" stroke-width="2.5"/></svg>`,
+ jacket:c=>`<svg viewBox="0 0 100 100"><path d="M32 16l18 8 18-8 22 18-6 58H70V40l-20 50-20-50v52H16l-6-58z" fill="${c}"/><path d="M50 24v66" stroke="#0005" stroke-width="1.5"/><circle cx="46" cy="44" r="1.8" fill="#fff8"/><circle cx="46" cy="58" r="1.8" fill="#fff8"/></svg>`,
+ dress:c=>`<svg viewBox="0 0 100 100"><path d="M40 12h20l-2 16 6 16 18 46H18l18-46 6-16z" fill="${c}"/><path d="M36 44h28" stroke="#0004" stroke-width="2.5"/></svg>`,
+ jeans:c=>`<svg viewBox="0 0 100 100"><path d="M28 10h44l6 84H58L50 40l-8 54H22z" fill="${c}"/><path d="M28 18h44" stroke="#0005" stroke-width="2.5"/><path d="M50 18v20" stroke="#0004" stroke-width="1.5"/></svg>`,
+ sneaker:c=>`<svg viewBox="0 0 100 100"><path d="M10 62q4-22 18-26l14 10 16-6q20 4 32 22v10H10z" fill="${c}"/><rect x="10" y="70" width="80" height="10" rx="4" fill="#f4f1ea" stroke="#0002"/><path d="M34 46l6 8M42 44l6 8" stroke="#0005" stroke-width="2.5"/></svg>`};
+const PRODUCTS=[
+ {n:"Heavyweight Hoodie",t:"hoodie",c:"#3d4a5c",p:65,cat:"Knitwear"},{n:"Quilted Jacket",t:"jacket",c:"#6b705c",p:140,cat:"Outerwear"},
+ {n:"Satin Slip Dress",t:"dress",c:"#7d5a6b",p:85,cat:"Dresses"},{n:"Organic Cotton Tee",t:"tee",c:"#d9d4c7",p:25,cat:"Basics"},
+ {n:"Wide-Leg Jeans",t:"jeans",c:"#41618a",p:70,cat:"Denim"},{n:"Leather Runner",t:"sneaker",c:"#a0522d",p:110,cat:"Footwear"},
+ {n:"Boxy Tee",t:"tee",c:"#1f2933",p:30,cat:"Basics"},{n:"Wool Overshirt",t:"jacket",c:"#8b6f4e",p:120,cat:"Outerwear"},
+ {n:"Merino Hoodie",t:"hoodie",c:"#8a9a8b",p:75,cat:"Knitwear"},{n:"Midi Dress",t:"dress",c:"#b08a5a",p:95,cat:"Dresses"}];
+const CH=["Fz","C3","Cz","C4","Pz","PO7","Oz","PO8"];
+const POS={Fz:[0,-.5],C3:[-.55,0],Cz:[0,0],C4:[.55,0],Pz:[0,.42],PO7:[-.5,.66],Oz:[0,.84],PO8:[.5,.66]};
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const HI=.66, MID=.42;
+function fit(c){if(!c.dataset.h)c.dataset.h=c.getAttribute('height');const r=c.getBoundingClientRect(),d=devicePixelRatio||1,w=r.width||c.width,h=+c.dataset.h;
+ if(c.width!==Math.round(w*d)){c.width=w*d;c.height=h*d;c.style.height=h+'px'}const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);return[g,w,h]}
+const S={mode:null,ws:null,t0:performance.now(),buf:CH.map(()=>new Float32Array(1000)),wi:0,alphaCh:CH.map(()=>.35),bands:{theta:0,alpha:0,beta:0},
+ trial:0,total:PRODUCTS.length,scores:[],cart:[],phase:"idle",quality:CH.map(()=>"good"),like:0};
+
+// synthetic EEG
+let ph=CH.map(()=>Math.random()*6.28),pk=CH.map(()=>0);
+function synth(t){const v=S.phase==="view",lk=S.like;return CH.map((c,i)=>{const post=/^(P|O)/.test(c);pk[i]=.97*pk[i]+(Math.random()-.5)*6;
+ const a=post?(v?9-6*lk:12):4,th=c==="Fz"?(v?3+7*lk:3):2;let x=pk[i]+a*Math.sin(2*Math.PI*10*t+ph[i])+th*Math.sin(2*Math.PI*6*t+ph[i]*1.3)+2*Math.sin(2*Math.PI*21*t+i);
+ if(c==="Fz"&&S.blinkAt&&Math.abs(t-S.blinkAt)<.15)x+=90*Math.cos((t-S.blinkAt)/.15*Math.PI/2);return x})}
+
+function drawEEG(){const[g,w,h]=fit($('eeg'));g.clearRect(0,0,w,h);const n=1000,lane=h/CH.length,L=34;
+ g.strokeStyle=css('--line-2');g.lineWidth=1;for(let k=1;k<5;k++){const x=L+(w-L)*k/5;g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke()}
+ CH.forEach((c,i)=>{const y0=lane*(i+.5),a=S.buf[i];g.font='500 11px "IBM Plex Mono",monospace';g.fillStyle=css('--muted');g.textBaseline='middle';g.fillText(c,0,y0);
+  const bad=S.quality[i]!=="good";g.strokeStyle=bad?css('--mid'):css('--trace');g.lineWidth=1;g.beginPath();
+  for(let k=0;k<n;k+=2){const v=a[(S.wi+k)%n],x=L+(w-L)*k/n,y=y0-Math.max(-1,Math.min(1,v/45))*lane*.42;k?g.lineTo(x,y):g.moveTo(x,y)}g.stroke()});
+ g.fillStyle=css('--muted');g.font='11px Inter';g.textBaseline='alphabetic';g.fillText('4 s',w-20,h-2)}
+
+// viridis-like sequential palette
+function pal(v){v=Math.max(0,Math.min(1,v));const s=[[68,1,84],[59,82,139],[33,145,140],[94,201,98],[253,231,37]];const x=v*(s.length-1),i=Math.min(s.length-2,Math.floor(x)),f=x-i;return s[i].map((a,k)=>Math.round(a+(s[i+1][k]-a)*f))}
+const off=document.createElement('canvas');off.width=off.height=64;
+function drawTopo(){const[g,w,h]=fit($('topo'));g.clearRect(0,0,w,h);const R=Math.min(w*.6,h)*.42,cx=w*.42,cy=h/2+6,o=off.getContext('2d'),im=o.createImageData(64,64);
+ for(let y=0;y<64;y++)for(let x=0;x<64;x++){const u=x/31.5-1,v=y/31.5-1,k=(y*64+x)*4;if(u*u+v*v>1){im.data[k+3]=0;continue}
+  let nu=0,de=0;CH.forEach((c,i)=>{const d=(u-POS[c][0])**2+(v-POS[c][1])**2+1e-3,wt=1/(d*d);nu+=wt*S.alphaCh[i];de+=wt});
+  const[r,gg,b]=pal(nu/de);im.data[k]=r;im.data[k+1]=gg;im.data[k+2]=b;im.data[k+3]=255}
+ o.putImageData(im,0,0);g.drawImage(off,cx-R,cy-R,2*R,2*R);
+ g.strokeStyle=css('--text-2');g.lineWidth=1.5;g.beginPath();g.arc(cx,cy,R,0,7);g.stroke();g.beginPath();g.moveTo(cx-9,cy-R+1);g.lineTo(cx,cy-R-11);g.lineTo(cx+9,cy-R+1);g.stroke();
+ CH.forEach((c,i)=>{const x=cx+POS[c][0]*R,y=cy+POS[c][1]*R;g.fillStyle='#fff';g.strokeStyle='#0008';g.lineWidth=1;g.beginPath();g.arc(x,y,3,0,7);g.fill();g.stroke();
+  g.font='500 10px "IBM Plex Mono"';g.fillStyle='#fff';g.fillText(c,x+5,y-4)});
+ // colour bar
+ const bx=w*.82,by=cy-R,bh=2*R;for(let k=0;k<bh;k++){const[r,gg,b]=pal(1-k/bh);g.fillStyle=`rgb(${r},${gg},${b})`;g.fillRect(bx,by+k,10,1)}
+ g.fillStyle=css('--muted');g.font='11px Inter';g.fillText('high',bx+15,by+8);g.fillText('low',bx+15,by+bh)}
+
+// UI
+let sa=0,st=null;
+function tickScore(){if(st==null)return;sa+=(st-sa)*.1;$('score').textContent=Math.round(sa*100);$('scoreBar').style.width=Math.round(sa*100)+'%'}
+function dbar(id,vid,v,col){const f=Math.max(-1,Math.min(1,v)),b=$(id);b.style.background=col;b.style.left=f<0?(50+f*50)+'%':'50%';b.style.width=Math.abs(f)*50+'%';
+ $(vid).textContent=(v>=0?'+':'−')+Math.abs(Math.round(v*100))+'%'}
+function updateBands(){const b=S.bands;dbar('bTheta','vTheta',b.theta,css('--theta'));dbar('bAlpha','vAlpha',b.alpha,css('--alpha'));dbar('bBeta','vBeta',b.beta,css('--beta'))}
+function steps(i){[0,1,2].forEach(k=>{$('st'+k).className=k<i?'done':k===i?'on':''})}
+function showProduct(p){$('pimg').innerHTML=SVG[p.t](p.c);$('pimg').style.opacity=1;$('pname').textContent=p.n;$('pmeta').textContent=`${p.cat} · £${p.p}`}
+function verdict(v,p){const b=$('badge');if(v>HI){b.textContent='High interest · added to shortlist';b.className='badge pos';addCart(p,v)}
+ else if(v>MID){b.textContent='Moderate interest';b.className='badge mid'}else{b.textContent='Low interest';b.className='badge neg'}}
+function addCart(p,v){S.cart.push({p,v});const c=$('cart');if(S.cart.length===1)c.innerHTML='';
+ const d=document.createElement('div');d.className='li';d.innerHTML=`<div class="th">${SVG[p.t](p.c)}</div><div><div class="t">${p.n}</div><div class="s">${p.cat} · £${p.p}</div></div><div class="sc">${Math.round(v*100)}</div>`;c.appendChild(d);
+ $('cartN').textContent=S.cart.length+(S.cart.length===1?' item':' items');
+ if(S.cart.length>=3){const tot=S.cart.reduce((s,x)=>s+x.p.p,0),top=[...S.cart].sort((a,b)=>b.v-a.v)[0];
+  $('reflect').style.display='block';$('reflect').innerHTML=`<b>Before you check out:</b> ${S.cart.length} items, £${tot} total. Your strongest response was to the <b>${top.p.n}</b>. Consider starting with that one.`}}
+function stats(){const n=S.scores.length;$('trialN').textContent=`Trial ${S.trial} of ${S.total}`;$('avg').textContent=n?Math.round(S.scores.reduce((a,b)=>a+b,0)/n*100):'–';
+ const g=S.quality.filter(q=>q==='good').length;$('sq').textContent=`${g} / 8`;$('sq').style.color=g>=6?css('--pos'):css('--mid')}
+
+// demo loop
+let T=[];const later=(ms,f)=>T.push(setTimeout(f,ms));
+function runTrial(){if(S.mode!=='demo')return;if(S.trial>=S.total){steps(3);$('badge').textContent='Session complete';$('badge').className='badge neg';S.phase='idle';return}
+ const p=PRODUCTS[S.trial];S.like=Math.max(.05,Math.min(.97,[.9,.6,.2,.75,.35,.95,.15,.55,.3,.85][S.trial]+(Math.random()-.5)*.12));
+ S.phase='fix';steps(0);$('pimg').style.opacity=0;$('fix').classList.add('on');$('badge').textContent='';$('badge').className='badge';
+ later(1000,()=>{S.phase='view';steps(1);$('fix').classList.remove('on');showProduct(p);if(Math.random()<.3)S.blinkAt=(performance.now()-S.t0)/1000+1.5;
+  let k=0;const iv=setInterval(()=>{k++;const r=k/8;st=S.like*(.5+.5*r)+(Math.random()-.5)*.04;
+   S.bands={theta:(.15+.8*S.like)*r+(Math.random()-.5)*.06,alpha:-(.1+.6*S.like)*r+(Math.random()-.5)*.06,beta:(.05+.35*S.like)*r+(Math.random()-.5)*.06};updateBands();
+   S.alphaCh=CH.map(c=>/^(P|O)/.test(c)?.8-.6*S.like*r+Math.random()*.06:.3+Math.random()*.08);if(k>=8)clearInterval(iv)},500);T.push(iv);
+  later(4200,()=>{S.phase='rate';steps(2);st=S.like;S.scores.push(S.like);S.trial++;verdict(S.like,p);stats();later(2400,runTrial)})})}
+function stopAll(){T.forEach(t=>{clearTimeout(t);clearInterval(t)});T=[];if(S.ws){S.ws.onclose=null;S.ws.close();S.ws=null}
+ if(S.rawWs){S.rawWs.onclose=null;S.rawWs.close();S.rawWs=null}S.rawLive=false}
+function reset(){MindCartModelStatus.render('ml',null,'disconnected');S.trial=0;S.scores=[];S.cart=[];$('cart').innerHTML='<div class="empty">Items above the interest threshold appear here.</div>';$('cartN').textContent='0 items';$('reflect').style.display='none';S.t0=performance.now()}
+function demo(){stopAll();reset();MindCartModelStatus.render('ml',null,'demo');S.mode='demo';S.quality=CH.map(()=>'good');$('status').classList.add('on');$('statusText').textContent='Demo · synthetic signal';
+ $('modeLbl').textContent='Simulated';$('acc').textContent='0.79';$('gain').textContent='+0.17';$('simNote').style.display='block';stats();runTrial()}
+
+// live
+let base=null;
+function connect(){stopAll();reset();MindCartModelStatus.render('ml',null,'live');S.mode='live';$('statusText').textContent='Connecting…';$('modeLbl').textContent='Live';$('simNote').style.display='none';$('acc').textContent='–';$('gain').textContent='–';
+ const ws=new WebSocket($('url').value.trim());S.ws=ws;connectRaw();
+ ws.onopen=()=>{$('status').classList.add('on');liveStatus();steps(1)};
+ ws.onmessage=e=>{const f=JSON.parse(e.data);MindCartModelStatus.render('ml',f.model,'live');S.feat=f;S.quality=f.quality;S.alphaCh=f.alpha_rel.map(v=>Math.min(1,v*2.2));
+  const s=f.summary||{},pa=s.posterior_alpha_rel??.2,th=f.theta_rel[0]??.2,ba=s.beta_alpha_ratio??1;
+  if(!base)base={pa,th,ba};base={pa:.95*base.pa+.05*pa,th:.95*base.th+.05*th,ba:.95*base.ba+.05*ba};
+  S.bands={theta:(th-base.th)/(base.th+1e-6),alpha:(pa-base.pa)/(base.pa+1e-6),beta:(ba-base.ba)/(base.ba+1e-6)};updateBands();
+  const z=1.5*S.bands.theta-1.5*S.bands.alpha+.5*S.bands.beta;st=1/(1+Math.exp(-z));S.phase='view';stats();
+  const amp=f.alpha.map(Math.sqrt);if(!S.rawLive)for(let k=0;k<62;k++){CH.forEach((c,i)=>S.buf[i][S.wi]=amp[i]*Math.sin(k*.9+i)*3+(Math.random()-.5)*8);S.wi=(S.wi+1)%1000}};
+ ws.onerror=()=>{$('statusText').textContent='Connection error'};ws.onclose=()=>{MindCartModelStatus.render('ml',null,'disconnected');$('status').classList.remove('on');$('statusText').textContent='Disconnected'}}
+
+
+// raw EEG (port + 1): real samples for the EEG trace, 3D brain spikes and region traces
+function rawUrl(){const q=new URLSearchParams(location.search).get('raw');if(q)return q;
+ try{const u=new URL($('url').value.trim());u.port=String((+u.port||8765)+1);return u.toString().replace(/\/$/,'')}catch(e){return 'ws://localhost:8766'}}
+function liveStatus(){if(S.mode!=='live')return;$('statusText').textContent='Live · '+(S.rawLive?'features + raw EEG':'features only (no raw EEG)')}
+const RF=CH.map(()=>({dc:null,hp:0,px:0,ma:[0,0,0,0,0]}));
+function filtSample(c,x){const f=RF[c];if(f.dc===null){f.dc=x;f.px=x}
+ const y=.975*(f.hp+x-f.px);f.hp=y;f.px=x;            // ~1 Hz high-pass: removes DC offset and drift
+ f.ma.shift();f.ma.push(y);return f.ma.reduce((a,b)=>a+b,0)/5}  // 5-sample mean at 250 Hz: nulls 50 Hz mains
+function connectRaw(){const r=new WebSocket(rawUrl());S.rawWs=r;RF.forEach(f=>{f.dc=null;f.hp=0;f.ma.fill(0)});
+ r.onmessage=e=>{const m=JSON.parse(e.data);if(m.type!=='raw'||!m.x)return;if(!S.rawLive){S.rawLive=true;liveStatus()}
+  for(const v of m.x){CH.forEach((c,i)=>S.buf[i][S.wi]=filtSample(i,v[i]));S.wi=(S.wi+1)%1000}};
+ r.onclose=()=>{S.rawLive=false;liveStatus()}}
+let last=performance.now();
+function loop(now){const t=(now-S.t0)/1000;$('clock').textContent=String(Math.floor(t/60)).padStart(2,'0')+':'+String(Math.floor(t%60)).padStart(2,'0');
+ if(S.mode!=='live'){const n=Math.min(40,Math.round((now-last)/4));for(let k=0;k<n;k++){const v=synth(t-(n-k)*.004);CH.forEach((c,i)=>S.buf[i][S.wi]=v[i]);S.wi=(S.wi+1)%1000}}
+ last=now;drawEEG();drawTopo();tickScore();requestAnimationFrame(loop)}
+$('demoBtn').onclick=demo;$('connectBtn').onclick=connect;updateBands();stats();requestAnimationFrame(loop);
+const q=new URLSearchParams(location.search);if(q.get('theme'))document.documentElement.dataset.theme=q.get('theme');
+if(q.get('ws')){$('url').value=q.get('ws');connect()}else if(q.has('demo'))demo();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ---------- 3D brain: live regions + spike flashes ----------
+(function(){
+const host=$('brain3d');
+if(typeof THREE==='undefined'){$('b3err').style.display='grid';return}
+
+const LOBES=[
+ {n:'Frontal',d:'Attention, valuation',ch:['Fz'],col:'#7b8cff'},
+ {n:'Sensorimotor',d:'Motor readiness',ch:['C3','Cz','C4'],col:'#3ccf91'},
+ {n:'Parietal',d:'Attention, integration',ch:['Pz'],col:'#f5a524'},
+ {n:'Occipital',d:'Visual processing',ch:['PO7','Oz','PO8'],col:'#ff6b9a'}];
+const LC=LOBES.map(L=>new THREE.Color(L.col));
+const DIR={Fz:[0,.78,.62],C3:[-.78,.62,0],Cz:[0,1,0],C4:[.78,.62,0],Pz:[0,.78,-.62],PO7:[-.62,.25,-.75],Oz:[0,.22,-1],PO8:[.62,.25,-.75]};
+const SX=.70,SY=.66,SZ=.92;
+const regOf=k=>LOBES.findIndex(L=>L.ch.includes(CH[k]));
+
+// ---- shape ----
+function hemi(x,y,z){let r=1;
+ if(y<0)r*=1-.35*Math.min(1,-y*1.4)*(z>.35?1:.6);
+ r-=.13*Math.exp(-(x*x)/.0016)*Math.max(0,y+.15);
+ const sy=y-(-.12+.32*z);
+ if(Math.abs(x)>.35&&z>-.35&&z<.7)r-=.05*Math.exp(-sy*sy/.004)*Math.min(1,(Math.abs(x)-.35)*5);
+ if(y<-.1&&z>.3&&z<.75&&Math.abs(x)<.45)r-=.08;
+ return r}
+const WV=[];{let sd=7;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;
+ for(let i=0;i<22;i++){const a=rnd()*6.283,b=Math.acos(2*rnd()-1);WV.push([Math.sin(b)*Math.cos(a),Math.sin(b)*Math.sin(a),Math.cos(b),13+rnd()*11,rnd()*6.28])}}
+function gyri(x,y,z){let n=0;for(const w of WV)n+=Math.sin((x*w[0]+y*w[1]+z*w[2])*w[3]+w[4]);n/=Math.sqrt(WV.length);const r=1-Math.abs(n);return r*r}
+
+const geo=new THREE.SphereGeometry(1,200,140),P=geo.attributes.position,N=P.count;
+const W=new Float32Array(N*8),G=new Float32Array(N),R=new Uint8Array(N),B=new Float32Array(N),E=new Float32Array(N),EK=new Uint8Array(N);
+const dirs=CH.map(c=>{const d=DIR[c],l=Math.hypot(...d);return d.map(v=>v/l)});
+const RING=.05; // measurement circle around each electrode (squared chord distance)
+for(let i=0;i<N;i++){
+ const x=P.getX(i),y=P.getY(i),z=P.getZ(i);
+ const g=gyri(x,y,z),mid=Math.exp(-(x*x)/.003);
+ const r=hemi(x,y,z)+.035*g*(1-mid*.8);G[i]=g*(1-mid*.6)+mid*.1;
+ P.setXYZ(i,x*r*SX,y*r*SY,z*r*SZ);
+ let s=0,best=0,bi=0,ring=0,rk=0;const rw=[0,0,0,0];
+ dirs.forEach((d,k)=>{const dd=(x-d[0])**2+(y-d[1])**2+(z-d[2])**2,w=Math.exp(-dd/.22);W[i*8+k]=w;s+=w;rw[regOf(k)]+=w;if(w>best){best=w;bi=k}
+  const rv=Math.exp(-(((dd-RING)/.009)**2));if(rv>ring){ring=rv;rk=k}});
+ for(let k=0;k<8;k++)W[i*8+k]/=s+.08;
+ R[i]=regOf(bi);E[i]=ring;EK[i]=rk;
+ const srt=[...rw].sort((a,b)=>b-a);B[i]=Math.max(0,1-(srt[0]-srt[1])/(srt[0]*.16+1e-6))*Math.min(1,srt[0]*2.5)}
+geo.computeVertexNormals();
+const COL=new Float32Array(N*3);geo.setAttribute('color',new THREE.BufferAttribute(COL,3));
+const brain=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:.6}));
+
+const cg=new THREE.SphereGeometry(1,80,50),cp=cg.attributes.position;
+for(let i=0;i<cp.count;i++){const x=cp.getX(i),y=cp.getY(i),z=cp.getZ(i),r=1+.04*Math.sin(y*38)-.12*Math.exp(-x*x/.01);cp.setXYZ(i,x*r*.5,y*r*.24,z*r*.3)}
+cg.computeVertexNormals();
+const tissue=new THREE.MeshStandardMaterial({color:0xb3a8b2,roughness:.7});
+const cere=new THREE.Mesh(cg,tissue);cere.position.set(0,-.36,-.56);
+const stem=new THREE.Mesh(new THREE.CylinderGeometry(.09,.07,.5,24),tissue);stem.position.set(0,-.5,-.3);stem.rotation.x=.35;
+
+const epos=dirs.map(d=>{const r=hemi(...d)+.055;return new THREE.Vector3(d[0]*r*SX,d[1]*r*SY,d[2]*r*SZ)});
+const enrm=epos.map(p=>p.clone().normalize());
+const elec=epos.map(p=>{const m=new THREE.Mesh(new THREE.SphereGeometry(.017,16,12),new THREE.MeshBasicMaterial({color:0xffffff}));m.position.copy(p);return m});
+
+const group=new THREE.Group();group.add(brain,cere,stem,...elec);
+// expanding pulse rings for spikes
+const pulses=[];const ringGeo=new THREE.RingGeometry(.82,1,48);
+function pulse(k){const m=new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:LC[regOf(k)],transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+ m.position.copy(epos[k]).addScaledVector(enrm[k],.01);m.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),enrm[k]);group.add(m);pulses.push({m,t0:performance.now()})}
+
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(30,1,.1,20);
+scene.add(group,new THREE.HemisphereLight(0xffffff,0x8a8098,.9));
+const key=new THREE.DirectionalLight(0xffffff,.75);key.position.set(2,3,3);scene.add(key);
+const rim=new THREE.DirectionalLight(0x8fa0ff,.35);rim.position.set(-3,1,-3);scene.add(rim);
+const ren=new THREE.WebGLRenderer({antialias:true,alpha:true});ren.setPixelRatio(Math.min(2,devicePixelRatio||1));host.prepend(ren.domElement);
+function size(){const w=host.clientWidth,h=host.clientHeight;ren.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+size();new ResizeObserver(size).observe(host);
+
+// 3D labels
+const labels=CH.map((c,k)=>{const d=document.createElement('div');d.className='b3lab';d.textContent=c;d.style.setProperty('--c',LOBES[regOf(k)].col);host.appendChild(d);return d});
+
+// ---- state ----
+let rotY=-.9,rotX=.18,goal=null,dist=4.1,drag=null,moved=0,idle=0,sel=-1,showLab=true,hoverR=-1;
+const act=new Float32Array(8).fill(.12),tgt=new Float32Array(8),prevT=new Float32Array(8),ef=new Float32Array(8),lobeAct=new Float32Array(4),spk=new Uint32Array(4);
+const cl=v=>Math.max(0,Math.min(1,v));let base=null;
+
+// ---- interaction ----
+host.addEventListener('pointerdown',e=>{if(e.target.closest('.b3tools'))return;drag=[e.clientX,e.clientY];moved=0;host.setPointerCapture(e.pointerId)});
+host.addEventListener('pointerup',e=>{if(drag&&moved<5)pick(e);drag=null;idle=performance.now()});
+host.addEventListener('pointermove',e=>{if(drag){const dx=e.clientX-drag[0],dy=e.clientY-drag[1];moved+=Math.abs(dx)+Math.abs(dy);rotY+=dx*.008;rotX=Math.max(-.7,Math.min(1,rotX+dy*.006));goal=null;drag=[e.clientX,e.clientY]}hover(e)});
+host.addEventListener('pointerleave',()=>{$('b3tip').style.opacity=0;hoverR=-1});
+host.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(2.4,Math.min(6,dist+e.deltaY*.002))},{passive:false});
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();
+function hit(e){const b=host.getBoundingClientRect();mv.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);ray.setFromCamera(mv,cam);return ray.intersectObject(brain)[0]}
+function hover(e){if(drag)return;const h=hit(e),tip=$('b3tip'),b=host.getBoundingClientRect();if(!h){tip.style.opacity=0;hoverR=-1;return}
+ hoverR=R[h.face.a];const L=LOBES[hoverR];tip.innerHTML=`<b>${L.n}</b> · ${Math.round(lobeAct[hoverR]*100)}%<br><span>${L.d} · ${L.ch.join(' ')}</span><br><span>Click to focus</span>`;
+ tip.style.opacity=1;tip.style.left=Math.min(b.width-tip.offsetWidth-6,e.clientX-b.left+14)+'px';tip.style.top=(e.clientY-b.top+14)+'px'}
+function pick(e){const h=hit(e);select(h?R[h.face.a]:-1)}
+function select(j){sel=sel===j?-1:j;
+ if(sel>=0){const d=new THREE.Vector3();LOBES[sel].ch.forEach(c=>d.add(new THREE.Vector3(...dirs[CH.indexOf(c)])));d.normalize();
+  let gy=Math.atan2(-d.x,d.z);while(gy-rotY>Math.PI)gy-=2*Math.PI;while(rotY-gy>Math.PI)gy+=2*Math.PI;goal=[gy,Math.max(-.5,Math.min(.9,d.y*.75))];dist=3.4}
+ else{goal=null;dist=4.1}
+ document.querySelectorAll('.lobe').forEach((el,k)=>el.classList.toggle('sel',k===sel));renderDetail(true)}
+$('b3reset').onclick=()=>{sel=-1;goal=null;dist=4.1;rotX=.18;idle=0;document.querySelectorAll('.lobe').forEach(el=>el.classList.remove('sel'));renderDetail(true)};
+$('b3labels').onclick=e=>{showLab=!showLab;e.currentTarget.classList.toggle('on',showLab)};
+$('b3full').onclick=()=>{const c=$('b3card');document.fullscreenElement?document.exitFullscreen():c.requestFullscreen?.()};
+
+// ---- spikes ----
+const NB=1000;let rp=S.wi,cnt=0;const mu=new Float32Array(8),va=new Float32Array(8).fill(150),last=new Float32Array(8),log=[];
+function fire(k,amp){const now=performance.now();if(now-last[k]<350)return;last[k]=now;ef[k]=1;pulse(k);spk[regOf(k)]++;
+ log.unshift({t:now,k,amp:Math.round(amp),n:cnt});if(log.length>40)log.pop();
+ labels[k].classList.remove('fl');void labels[k].offsetWidth;labels[k].classList.add('fl')}
+function detect(){while(rp!==S.wi){for(let k=0;k<8;k++){const x=S.buf[k][rp],d=x-mu[k];mu[k]+=.004*d;va[k]+=.004*(d*d-va[k]);
+  if(Math.abs(d)>Math.max(28,3.6*Math.sqrt(va[k])))fire(k,d)}rp=(rp+1)%NB;cnt++}}
+function inject(){if(S.mode!=='demo')return;const v=S.phase==='view';
+ for(let k=0;k<8;k++)if(Math.random()<(v?.05*act[k]*act[k]:.0015)){
+  const a=(45+Math.random()*30)*(Math.random()<.5?-1:1);for(let s=0;s<16;s++){const i=(S.wi-16+s+NB)%NB;S.buf[k][i]+=a*Math.sin(Math.PI*s/16)*(s<8?1:-.5)}fire(k,a)}}
+
+// ---- activity ----
+function targets(){
+ if(S.mode==='live'&&S.feat){const f=S.feat;
+  const e=CH.map((c,i)=>((f.theta_rel?.[i]??.2)+(f.beta_rel?.[i]??.2))/Math.max(.02,f.alpha_rel?.[i]??.2));
+  if(!base)base=e.slice();
+  CH.forEach((c,i)=>{base[i]=.97*base[i]+.03*e[i];tgt[i]=f.quality?.[i]==='good'?cl(1/(1+Math.exp(-2.2*Math.log(e[i]/base[i])))*1.4-.45):0})}
+ else{const v=S.phase==='view'||S.phase==='rate',b=S.bands;
+  CH.forEach((c,i)=>{let a=.12;
+   if(v){if(/^(PO|O)/.test(c))a=.15+cl((.8-S.alphaCh[i])/.6)*.85;
+    else if(c==='Fz')a=.12+cl(b.theta)*.88;
+    else if(c==='Pz')a=.12+cl(.5*b.theta-.5*b.alpha)*.8;
+    else a=.1+cl(b.beta)*.9}
+   tgt[i]=a})}
+ for(let k=0;k<8;k++){if(S.mode==='live'&&!S.rawLive&&tgt[k]-prevT[k]>.15)fire(k,0);prevT[k]=tgt[k]}}
+
+const rest=new THREE.Color(),hot=new THREE.Color('#ff6b3d'),peak=new THREE.Color('#ffd166'),grey=new THREE.Color(),white=new THREE.Color('#ffffff'),tmp=new THREE.Color();
+function paint(){
+ const dark=/^#(0|1)/.test(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim());
+ rest.set(dark?'#8a8296':'#c9bfc6');grey.set(dark?'#3a3646':'#d9d4da');tissue.color.set(dark?'#6f677a':'#b3a8b2');
+ const rf=[0,0,0,0];for(let k=0;k<8;k++)rf[regOf(k)]=Math.max(rf[regOf(k)],ef[k]);
+ for(let i=0;i<N;i++){let a=0;for(let k=0;k<8;k++)a+=W[i*8+k]*act[k];
+  const j=R[i],t=cl((a-.18)/.7);tmp.copy(rest);if(t>0){tmp.lerp(hot,Math.min(1,t*1.6));if(t>.6)tmp.lerp(peak,(t-.6)/.4)}
+  if(rf[j]>.01)tmp.lerp(LC[j],rf[j]*.6);
+  if(sel>=0&&j!==sel)tmp.lerp(grey,.65);
+  const ring=E[i]*(.55+.45*ef[EK[i]]);if(ring>.02)tmp.lerp(ef[EK[i]]>.05?LC[regOf(EK[i])]:white,Math.min(1,ring*1.1));
+  let sh=(.62+.38*G[i])*(1-.5*B[i])*(1+rf[j]*.5);if(hoverR===j&&sel<0)sh*=1.12;
+  COL[i*3]=tmp.r*sh;COL[i*3+1]=tmp.g*sh;COL[i*3+2]=tmp.b*sh}
+ geo.attributes.color.needsUpdate=true;
+ CH.forEach((c,k)=>{const bad=S.mode==='live'&&S.feat&&S.feat.quality?.[k]!=='good';elec[k].material.color.set(bad?'#f5a524':ef[k]>.05?LOBES[regOf(k)].col:'#ffffff');elec[k].scale.setScalar(1+act[k]*.4+ef[k]*1.4)})}
+
+// ---- side panel ----
+$('lobes').innerHTML=LOBES.map((L,j)=>`<div class="lobe" id="lobe${j}" tabindex="0"><div class="dot" style="background:${L.col}"></div><div class="n">${L.n}<small>${L.d} · ${L.ch.join(' ')}</small></div><div class="lbar"><b id="lb${j}" style="background:${L.col}"></b></div><div class="v" id="lv${j}">–</div><div class="sp" id="ls${j}">0</div></div>`).join('');
+LOBES.forEach((L,j)=>{const el=$('lobe'+j);el.onclick=()=>select(j);el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(j)}}});
+function lobes(){let top=0;LOBES.forEach((L,j)=>{const idx=L.ch.map(c=>CH.indexOf(c));lobeAct[j]=idx.reduce((s,i)=>s+act[i],0)/idx.length;if(lobeAct[j]>lobeAct[top])top=j});
+ LOBES.forEach((L,j)=>{$('lb'+j).style.width=Math.round(lobeAct[j]*100)+'%';$('lv'+j).textContent=Math.round(lobeAct[j]*100)+'%';$('ls'+j).textContent=spk[j];
+  $('lobe'+j).classList.toggle('top',j===top&&lobeAct[j]>.3)});
+ $('b3top').textContent=lobeAct[top]>.3?'Most active: '+LOBES[top].n:'At rest';return top}
+let shown=-2,lastLog=-1;
+function renderDetail(force){const top=lobes(),j=sel>=0?sel:top;
+ if(force||j!==shown){shown=j;const L=LOBES[j];$('b3dn').innerHTML=`<i style="background:${L.col}"></i>${L.n}`;
+  $('b3dm').textContent=(sel>=0?'Focused':'Following most active')+' · '+L.ch.join(', ')+' · '+L.d}
+ // live trace of that region's electrodes, with spike markers
+ const[g,w,h]=fit($('b3trace'));g.clearRect(0,0,w,h);const L=LOBES[j],n=500,lane=h/L.ch.length;
+ L.ch.forEach((c,q)=>{const k=CH.indexOf(c),y0=lane*(q+.5),a=S.buf[k];
+  g.font='500 10px "IBM Plex Mono",monospace';g.fillStyle=css('--muted');g.textBaseline='middle';g.fillText(c,0,y0);
+  g.strokeStyle=ef[k]>.05?L.col:css('--trace');g.lineWidth=ef[k]>.05?1.6:1;g.beginPath();
+  for(let s=0;s<n;s++){const v=a[(S.wi-n+s+NB)%NB],x=32+(w-32)*s/n,yy=y0-Math.max(-1,Math.min(1,v/40))*lane*.45;s?g.lineTo(x,yy):g.moveTo(x,yy)}g.stroke();
+  g.fillStyle=L.col;log.forEach(sp=>{if(sp.k!==k)return;const age=cnt-sp.n;if(age<0||age>n)return;const x=32+(w-32)*(n-age)/n;g.beginPath();g.moveTo(x-4,0);g.lineTo(x+4,0);g.lineTo(x,6);g.fill();g.fillRect(x-.5,4,1,h-8)})});
+ // spike log
+ if(log.length&&log[0].t!==lastLog||force){lastLog=log[0]?.t;
+  $('b3log').innerHTML=log.length?log.slice(0,6).map(s=>{const L2=LOBES[regOf(s.k)];return`<div class="lg"><i style="background:${L2.col}"></i><b>${CH[s.k]}</b><span>${L2.n}</span><em class="mono" data-t="${s.t}"></em></div>`}).join(''):'<div class="empty">No spikes yet. Run the demo or connect a headset.</div>'}
+ document.querySelectorAll('#b3log em').forEach(e=>e.textContent=((performance.now()-e.dataset.t)/1000).toFixed(1)+' s ago')}
+
+// ---- loop ----
+const wp=new THREE.Vector3(),wn=new THREE.Vector3(),cv=new THREE.Vector3();let fr=0;
+function frame(now){
+ detect();targets();inject();
+ for(let k=0;k<8;k++){act[k]+=(tgt[k]-act[k])*.06;ef[k]*=.93}
+ if(goal){rotY+=(goal[0]-rotY)*.08;rotX+=(goal[1]-rotX)*.08}
+ else if(!drag&&now-idle>2500&&sel<0)rotY+=.0035;
+ group.rotation.set(rotX,rotY,0);
+ cam.position.lerp(cv.set(0,.3*dist/4.1,dist),.1);cam.lookAt(0,-.05,0);
+ for(let i=pulses.length-1;i>=0;i--){const p=pulses[i],t=(now-p.t0)/800;if(t>=1){group.remove(p.m);p.m.material.dispose();pulses.splice(i,1);continue}
+  p.m.scale.setScalar(.03+.3*t);p.m.material.opacity=(1-t)*.9}
+ if(fr++%2===0)paint();
+ ren.render(scene,cam);
+ // labels
+ group.updateMatrixWorld();const b=host.clientWidth,hh=host.clientHeight;
+ labels.forEach((el,k)=>{wp.copy(epos[k]).applyMatrix4(group.matrixWorld);wn.copy(enrm[k]).transformDirection(group.matrixWorld);
+  const vis=showLab&&wn.dot(cv.copy(cam.position).sub(wp))>0;el.style.display=vis?'':'none';if(!vis)return;
+  wp.project(cam);el.style.transform=`translate(${(wp.x+1)/2*b}px,${(1-wp.y)/2*hh}px)`});
+ if(fr%3===0)renderDetail(false);
+ requestAnimationFrame(frame)}
+renderDetail(true);requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
